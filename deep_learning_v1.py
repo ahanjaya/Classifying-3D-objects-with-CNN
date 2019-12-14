@@ -23,20 +23,17 @@ class Deep_Learning:
     def __init__(self):
         data_net       = 'ModelNet10'
         # data_net       = 'ModelNet40'
+        self.model_net = 'voxnet'
+        # self.model_net = 'V_CNN_1'
+        # self.model_net = 'V_CNN_2'
+        # self.model_net = 'MV_CNN_1'
 
-        self.plt_num    = 0
         self.batch_size = 64
         self.epochs     = 50
 
         self.data_dir   = 'data/{}'.format(data_net)
-        self.voxnet_model   = '{}/voxnet_{}.json'.format(self.data_dir, data_net)
-        self.voxnet_weight  = '{}/voxnet_{}.hdf5'.format(self.data_dir, data_net)
-
-        self.vcnn1_model    = '{}/vcnn1_{}.json'.format(self.data_dir, data_net)
-        self.vcnn1_weight   = '{}/vcnn1_{}.hdf5'.format(self.data_dir, data_net)
-
-        self.mvcnn1_model   = '{}/mvcnn1_{}.json'.format(self.data_dir, data_net)
-        self.mvcnn1_weight  = '{}/mvcnn1_{}.hdf5'.format(self.data_dir, data_net)
+        self.dl_model   = '{}/{}_{}.json'.format(self.data_dir, self.model_net, data_net)
+        self.dl_weight  = '{}/{}_{}.hdf5'.format(self.data_dir, self.model_net, data_net)
         
         self.growth_memory() # limit tensorflow to use all of GPU resources
 
@@ -52,16 +49,9 @@ class Deep_Learning:
     def load_data(self, path):
         (X_train, y_train), (X_test, y_test), target_names = load_data(path)
 
-        y_train = to_categorical(y_train)
-        y_test  = to_categorical(y_test)
-
-        return (X_train, y_train), (X_test, y_test), target_names
-
-    def load_2D_data(self, path):
-        (X_train, y_train), (X_test, y_test), target_names = load_data(path)
-
-        X_train = X_train.reshape(X_train.shape[:-1])
-        X_test  = X_test.reshape(X_test.shape[:-1])
+        if self.model_net == 'V_CNN_1' or self.model_net == 'V_CNN_2':
+            X_train = X_train.reshape(X_train.shape[:-1])
+            X_test  = X_test.reshape(X_test.shape[:-1])
 
         y_train = to_categorical(y_train)
         y_test  = to_categorical(y_test)
@@ -87,10 +77,10 @@ class Deep_Learning:
         model.compile(loss='categorical_crossentropy', optimizer=Adam(lr=0.0001), metrics=['accuracy'])
 
         json_config = model.to_json()
-        with open(self.voxnet_model, 'w') as json_file:
+        with open(self.dl_model, 'w') as json_file:
             json_file.write(json_config)
 
-        checkpoint       = ModelCheckpoint(self.voxnet_weight, monitor='val_accuracy', verbose=1, save_best_only=True, mode='max')
+        checkpoint       = ModelCheckpoint(self.dl_weight, monitor='val_accuracy', verbose=1, save_best_only=True, mode='max')
         x_train, y_train = train_data
         x_test,  y_test  = test_data
 
@@ -123,10 +113,10 @@ class Deep_Learning:
         # print(model.metrics_names)
 
         json_config = model.to_json()
-        with open(self.mvcnn1_model, 'w') as json_file:
+        with open(self.dl_model, 'w') as json_file:
             json_file.write(json_config)
 
-        checkpoint       = ModelCheckpoint(self.mvcnn1_weight, monitor='val_accuracy', verbose=1, save_best_only=True, mode='max')
+        checkpoint       = ModelCheckpoint(self.dl_weight, monitor='val_accuracy', verbose=1, save_best_only=True, mode='max')
         x_train, y_train = train_data
         x_test,  y_test  = test_data
 
@@ -159,10 +149,10 @@ class Deep_Learning:
         # print(model.metrics_names)
 
         json_config = model.to_json()
-        with open(self.vcnn1_model, 'w') as json_file:
+        with open(self.dl_model, 'w') as json_file:
             json_file.write(json_config)
 
-        checkpoint       = ModelCheckpoint(self.vcnn1_weight, monitor='val_accuracy', verbose=1, save_best_only=True, mode='max')
+        checkpoint       = ModelCheckpoint(self.dl_weight, monitor='val_accuracy', verbose=1, save_best_only=True, mode='max')
         x_train, y_train = train_data
         x_test,  y_test  = test_data
 
@@ -214,75 +204,42 @@ class Deep_Learning:
         self.history = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, verbose=1, validation_data=(x_test, y_test), callbacks=[checkpoint])
         return model
 
-    def plot_single(self, mode, epochs, vox_hist, vcn1_hist, mvcn1_hist, list_vox, list_vcn1, list_mvcn1):
-        a, b, c      = [], [], []
+    def plot_history(self, history):
+        loss_list     = [s for s in history.history.keys() if 'loss' in s and 'val' not in s]
+        val_loss_list = [s for s in history.history.keys() if 'loss' in s and 'val' in s]
+        acc_list      = [s for s in history.history.keys() if 'acc'  in s and 'val' not in s]
+        val_acc_list  = [s for s in history.history.keys() if 'acc'  in s and 'val' in s]
         
-        self.plt_num += 1
-        plt.figure(self.plt_num)
-
-        for l in list_vox:
-            v, = plt.plot(epochs, vox_hist.history[l], 'b')
-            a.append(vox_hist.history[l])
-        for l in list_vcn1:
-            u, = plt.plot(epochs, vcn1_hist.history[l], 'g')
-            b.append(vcn1_hist.history[l])
-        for l in list_mvcn1:
-            w, = plt.plot(epochs, mvcn1_hist.history[l], 'r')
-            c.append(mvcn1_hist.history[l])
-        
-        if 'Loss' in mode:
-            a = np.min( np.array(a) )
-            b = np.min( np.array(b) )
-            c = np.min( np.array(c) )
-            plt.ylabel('Loss')
-        else:
-            a = np.max( np.array(a) )
-            b = np.max( np.array(b) )
-            c = np.max( np.array(c) )
-            plt.ylabel('Accuracy')
-
-        v.set_label('Voxnet - {0:.2f}'.format(a))
-        u.set_label('VCN1 - {0:.2f}'.  format(b))
-        w.set_label('MVCN1 - {0:.2f}'. format(c))
-
-        plt.title(mode)
-        plt.xlabel('Epochs')
-        plt.legend()
-
-
-    def plot_history(self, vox_hist, vcn1_hist, mvcn1_hist):
-        vox_loss       = [s for s in vox_hist.history.keys()   if 'loss' in s and 'val' not in s]
-        vox_val_loss   = [s for s in vox_hist.history.keys()   if 'loss' in s and 'val' in s]
-        vcn1_loss      = [s for s in vcn1_hist.history.keys()  if 'loss' in s and 'val' not in s]
-        vcn1_val_loss  = [s for s in vcn1_hist.history.keys()  if 'loss' in s and 'val' in s]
-        mvcn1_loss     = [s for s in mvcn1_hist.history.keys() if 'loss' in s and 'val' not in s]
-        mvcn1_val_loss = [s for s in mvcn1_hist.history.keys() if 'loss' in s and 'val' in s]
-        
-        vox_acc        = [s for s in vox_hist.history.keys()   if 'acc'  in s and 'val' not in s]
-        vox_val_acc    = [s for s in vox_hist.history.keys()   if 'acc'  in s and 'val' in s]
-        vcn1_acc       = [s for s in vcn1_hist.history.keys()  if 'acc'  in s and 'val' not in s]
-        vcn1_val_acc   = [s for s in vcn1_hist.history.keys()  if 'acc'  in s and 'val' in s]
-        mvcn1_acc      = [s for s in mvcn1_hist.history.keys() if 'acc'  in s and 'val' not in s]
-        mvcn1_val_acc  = [s for s in mvcn1_hist.history.keys() if 'acc'  in s and 'val' in s]
+        if len(loss_list) == 0:
+            print('Loss is missing in history')
+            return 
         
         ## As loss always exists
-        epochs = range(1,self.epochs + 1)
-
-        ## Training Loss
-        self.plot_single('Training Loss', epochs, vox_hist, vcn1_hist, mvcn1_hist, \
-                        vox_loss, vcn1_loss, mvcn1_loss)
-
-        ## Validation Loss
-        self.plot_single('Validation Loss', epochs, vox_hist, vcn1_hist, mvcn1_hist, \
-                        vox_val_loss, vcn1_val_loss, mvcn1_val_loss)
+        epochs = range(1,len(history.history[loss_list[0]]) + 1)
         
-        ## Training Accuracy
-        self.plot_single('Training Accuracy', epochs, vox_hist, vcn1_hist, mvcn1_hist, \
-                        vox_acc, vcn1_acc, mvcn1_acc)
+        ## Loss
+        plt.figure(1)
+        for l in loss_list:
+            plt.plot(epochs, history.history[l], 'b', label='Training loss (' + str(str(format(history.history[l][-1],'.5f'))+')'))
+        for l in val_loss_list:
+            plt.plot(epochs, history.history[l], 'g', label='Validation loss (' + str(str(format(history.history[l][-1],'.5f'))+')'))
+        
+        plt.title('Loss')
+        plt.xlabel('Epochs')
+        plt.ylabel('Loss')
+        plt.legend()
+        
+        ## Accuracy
+        plt.figure(2)
+        for l in acc_list:
+            plt.plot(epochs, history.history[l], 'b', label='Training accuracy (' + str(format(history.history[l][-1],'.5f'))+')')
+        for l in val_acc_list:    
+            plt.plot(epochs, history.history[l], 'g', label='Validation accuracy (' + str(format(history.history[l][-1],'.5f'))+')')
 
-        ## Validation Accuracy
-        self.plot_single('Validation Accuracy', epochs, vox_hist, vcn1_hist, mvcn1_hist, \
-                        vox_val_acc, vcn1_val_acc, mvcn1_val_acc)
+        plt.title('Accuracy')
+        plt.xlabel('Epochs')
+        plt.ylabel('Accuracy')
+        plt.legend()
 
     def plot_confusion_matrix(self, cm, classes, normalize=False, cmap=plt.cm.Blues):
         """
@@ -295,8 +252,7 @@ class Deep_Learning:
         else:
             title='Confusion matrix'
 
-        self.plt_num += 1
-        plt.figure(self.plt_num, figsize=(7.5, 6))
+        plt.figure(3)
         plt.imshow(cm, interpolation='nearest', cmap=cmap)
         plt.title(title)
         plt.colorbar()
@@ -309,7 +265,7 @@ class Deep_Learning:
         for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
             plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center", color="white" if cm[i, j] > thresh else "black")
 
-        plt.tight_layout()
+        # plt.tight_layout()
         plt.ylabel('True label')
         plt.xlabel('Predicted label')
 
@@ -320,10 +276,11 @@ class Deep_Learning:
             y_true = np.argmax(y_true, axis=1)
 
         # 2. Predict classes and stores in y_pred
-        # if self.model_net == 'V_CNN_2':
-        #     y_pred = model.predict(x, batch_size=batch_size)
-        #     y_pred = np.argmax(y_pred, axis=1)
-        y_pred = model.predict_classes(x, batch_size=batch_size)
+        if self.model_net == 'V_CNN_2':
+            y_pred = model.predict(x, batch_size=batch_size)
+            y_pred = np.argmax(y_pred, axis=1)
+        else:
+            y_pred = model.predict_classes(x, batch_size=batch_size)
         
         # 3. Print accuracy score
         # accuracy = np.mean(y_pred==y_true)
@@ -343,8 +300,6 @@ class Deep_Learning:
         # Load data
         (X_train, y_train), (X_test, y_test), target_names = self.load_data(self.data_dir)
 
-        (X_train_2D, y_train_2D), (X_test_2D, y_test_2D), target_names = self.load_2D_data(self.data_dir)
-
         # preprocess
         self.number_class   = np.unique(target_names).shape[0]
         print(self.number_class)
@@ -352,42 +307,27 @@ class Deep_Learning:
         self.encoded_labels = self.le.fit_transform(target_names)
 
         # training
-        model_voxnet   = self.voxnet((X_train, y_train),  (X_test, y_test), batch_size=self.batch_size, epochs=self.epochs)
-        voxnet_history = self.history
+        if self.model_net == 'voxnet':
+            model = self.voxnet((X_train, y_train),  (X_test, y_test), batch_size=self.batch_size, epochs=self.epochs)
+        elif self.model_net == 'V_CNN_1':
+            model = self.V_CNN_1((X_train, y_train), (X_test, y_test), batch_size=self.batch_size, epochs=self.epochs) 
+        elif self.model_net == 'V_CNN_2':
+            model = self.V_CNN_2((X_train, y_train), (X_test, y_test), batch_size=self.batch_size, epochs=self.epochs) 
+        elif self.model_net == 'MV_CNN_1':
+            model = self.MV_CNN_1((X_train, y_train), (X_test, y_test), batch_size=self.batch_size, epochs=self.epochs) 
 
-        model_vcn1     = self.V_CNN_1((X_train_2D, y_train_2D), (X_test_2D, y_test_2D), batch_size=self.batch_size, epochs=self.epochs) 
-        vcnn1_history  = self.history
+        self.plot_history(self.history)
+        del model
 
-        # model = self.V_CNN_2((X_train, y_train), (X_test, y_test), batch_size=self.batch_size, epochs=self.epochs) 
-        model_mvcn1    = self.MV_CNN_1((X_train, y_train), (X_test, y_test), batch_size=self.batch_size, epochs=self.epochs) 
-        mvcnn1_history = self.history
-
-        self.plot_history(voxnet_history, vcnn1_history, mvcnn1_history)
-
-        del model_voxnet
-        del model_vcn1
-        del model_mvcn1
-
-        # confusion matrix
-        with open(self.voxnet_model) as json_file:
+        # load best weight
+        with open(self.dl_model) as json_file:
             json_config = json_file.read()
             model       = model_from_json(json_config)
-        model.load_weights(self.voxnet_weight)
+        model.load_weights(self.dl_weight)
+        # model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+        # evaluate
         self.full_multiclass_report(model, X_test, y_test, self.le.inverse_transform(np.arange(len(target_names))), batch_size=self.batch_size)
-
-        with open(self.vcnn1_model) as json_file:
-            json_config = json_file.read()
-            model       = model_from_json(json_config)
-        model.load_weights(self.vcnn1_weight)
-        self.full_multiclass_report(model, X_test_2D, y_test_2D, self.le.inverse_transform(np.arange(len(target_names))), batch_size=self.batch_size)
-
-        with open(self.mvcnn1_model) as json_file:
-            json_config = json_file.read()
-            model       = model_from_json(json_config)
-        model.load_weights(self.mvcnn1_weight)
-        self.full_multiclass_report(model, X_test, y_test, self.le.inverse_transform(np.arange(len(target_names))), batch_size=self.batch_size)
-
-        # # model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
         
         # show graph
         plt.show(block=False)
