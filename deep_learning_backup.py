@@ -134,7 +134,7 @@ class Deep_Learning:
         model.add(BatchNormalization())
         model.add(Activation('relu'))
 
-        model.add(Conv2D(32, kernel_size=(3, 3), strides=(1, 1), data_format='channels_last'))
+        model.add(Conv2D(64, kernel_size=(3, 3), strides=(1, 1), data_format='channels_last'))
         model.add(BatchNormalization())
         model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), data_format='channels_last',))
         # model.add(Dropout(0.5))
