@@ -3,6 +3,7 @@
 import os
 import pcl
 import pptk
+import natsort
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -24,9 +25,9 @@ class Preprocess_Data:
         self.visual_ptk   = []
 
         self.show_plt     = False
-        self.debug        = False
-        self.augmentating = True
-        self.aug_theta    = np.arange(-45, 50, 5)
+        self.augmentating = False
+        self.aug_theta    = np.arange(-45, 50, 20)
+        # self.aug_theta    = np.arange(-90, 100, 10)
         self.aug_theta    = np.delete(self.aug_theta, np.argwhere(self.aug_theta==0))
         self.aug_dist     = np.arange(-1, 2, 1)
         # self.aug_dist     = np.delete(self.aug_dist, np.argwhere(self.aug_dist==0))
@@ -39,6 +40,12 @@ class Preprocess_Data:
             visual_ptk.attributes(pcl_data[:,-1])
         if big_point:
             visual_ptk.set(point_size=0.0025)
+
+        visual_ptk.set(r=2.88)
+        visual_ptk.set(phi=3.24)
+        visual_ptk.set(theta=0.64)
+        visual_ptk.set(lookat=(0.78, -0.01, -0.05))
+        visual_ptk.set(show_axis=False)
 
         return visual_ptk
 
@@ -186,13 +193,13 @@ class Preprocess_Data:
             x, y, z = voxel.nonzero()
             pcl     = np.stack((x, y, z), axis=1)
 
-            if self.debug:
+            if self.show_plt:
                 # original data
                 fig = plt.figure()
                 ax  = fig.add_subplot(1,2,1, projection='3d')
                 self.plot_voxel(ax, data[0], title='Original Voxel')
-                ax = fig.add_subplot(1,2,2, projection='3d')
-                self.plot_pcl(ax, x, y, z, title='Original PCL')
+                ax = fig.add_subplot(1,2,2,  projection='3d')
+                self.plot_pcl(ax, x, y, z,  title='Original PCL')
 
             # augmentation rotation
             for theta in self.aug_theta:
@@ -203,7 +210,7 @@ class Preprocess_Data:
                     augmented_data.append(rotated_voxel)
                     augmented_labels.append(labels[idx])
 
-                    if self.debug:
+                    if self.show_plt:
                         fig = plt.figure()
                         ax  = fig.add_subplot(1,2,1, projection='3d')
                         x, y, z = rotated_pcl[:,0], rotated_pcl[:,1], rotated_pcl[:,2]
@@ -226,7 +233,7 @@ class Preprocess_Data:
                         augmented_data.append(translated_voxel)
                         augmented_labels.append(labels[idx])
 
-                        if self.debug:
+                        if self.show_plt:
                             fig = plt.figure()
                             ax  = fig.add_subplot(1,2,1, projection='3d')
                             tx, ty, tz = translated_pcl[:,0], translated_pcl[:,1], translated_pcl[:,2]
@@ -237,7 +244,7 @@ class Preprocess_Data:
                             title = 'Translated Voxel (X:{}, Y:{})'. format(diff[0], diff[1])
                             self.plot_voxel(ax, translated_voxel, title=title)
 
-        if self.debug:
+        if self.show_plt:
             # holding plot
             plt.show(block=False)
             plt.pause(0.1)
@@ -287,7 +294,7 @@ class Preprocess_Data:
                 plt.pause(1)
             #     input('Enter to close all')
                 
-            if self.debug:
+            if self.show_plt:
                 state = input("\nContinue : ")
                 if state == 'q':
                     print('[Pre.] Exit..')

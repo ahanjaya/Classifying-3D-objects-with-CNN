@@ -97,7 +97,7 @@ class Deep_Learning:
         self.history = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, verbose=1, validation_data=(x_test, y_test), callbacks=[checkpoint])
         return model
 
-    def MV_CNN_1(self, train_data, test_data, batch_size=128, epochs=50):
+    def MV_CNN(self, train_data, test_data, batch_size=128, epochs=50):
         model = Sequential()
         model.add(Conv3D(32, input_shape=(30, 30, 30, 1), kernel_size=(3, 3, 3), strides=(1, 1, 1), data_format='channels_last'))
         model.add(BatchNormalization())
@@ -214,22 +214,28 @@ class Deep_Learning:
         self.history = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, verbose=1, validation_data=(x_test, y_test), callbacks=[checkpoint])
         return model
 
-    def plot_single(self, mode, epochs, vox_hist, vcn1_hist, mvcn1_hist, list_vox, list_vcn1, list_mvcn1):
-        a, b, c      = [], [], []
-        
+    def plot_single(self, mode, epochs, vox_hist, vcnn1_hist, mvcnn_hist):
         self.plt_num += 1
         plt.figure(self.plt_num)
 
-        for l in list_vox:
-            v, = plt.plot(epochs, vox_hist.history[l], 'b')
-            a.append(vox_hist.history[l])
-        for l in list_vcn1:
-            u, = plt.plot(epochs, vcn1_hist.history[l], 'g')
-            b.append(vcn1_hist.history[l])
-        for l in list_mvcn1:
-            w, = plt.plot(epochs, mvcn1_hist.history[l], 'r')
-            c.append(mvcn1_hist.history[l])
-        
+        if mode == 'Training Loss':
+            key = 'loss' 
+        elif mode == 'Validation Loss':
+            key = 'val_loss' 
+        elif mode == 'Training Accuracy':
+            key = 'accuracy' 
+        elif mode == 'Validation Accuracy':
+            key = 'val_accuracy' 
+
+        v, = plt.plot(epochs, vox_hist.history[key],   'b')
+        a = vox_hist.history[key]
+
+        u, = plt.plot(epochs, vcnn1_hist.history[key], 'g')
+        b = vcnn1_hist.history[key]
+
+        w, = plt.plot(epochs, mvcnn_hist.history[key], 'r')
+        c = mvcnn_hist.history[key]
+
         if 'Loss' in mode:
             a = np.min( np.array(a) )
             b = np.min( np.array(b) )
@@ -241,48 +247,29 @@ class Deep_Learning:
             c = np.max( np.array(c) )
             plt.ylabel('Accuracy')
 
-        v.set_label('Voxnet - {0:.2f}'.format(a))
+        v.set_label('VoxNet - {0:.2f}'.format(a))
         u.set_label('VCN1 - {0:.2f}'.  format(b))
-        w.set_label('MVCN1 - {0:.2f}'. format(c))
+        w.set_label('MVCNN - {0:.2f}'. format(c))
 
         plt.title(mode)
         plt.xlabel('Epochs')
         plt.legend()
 
-
-    def plot_history(self, vox_hist, vcn1_hist, mvcn1_hist):
-        vox_loss       = [s for s in vox_hist.history.keys()   if 'loss' in s and 'val' not in s]
-        vox_val_loss   = [s for s in vox_hist.history.keys()   if 'loss' in s and 'val' in s]
-        vcn1_loss      = [s for s in vcn1_hist.history.keys()  if 'loss' in s and 'val' not in s]
-        vcn1_val_loss  = [s for s in vcn1_hist.history.keys()  if 'loss' in s and 'val' in s]
-        mvcn1_loss     = [s for s in mvcn1_hist.history.keys() if 'loss' in s and 'val' not in s]
-        mvcn1_val_loss = [s for s in mvcn1_hist.history.keys() if 'loss' in s and 'val' in s]
-        
-        vox_acc        = [s for s in vox_hist.history.keys()   if 'acc'  in s and 'val' not in s]
-        vox_val_acc    = [s for s in vox_hist.history.keys()   if 'acc'  in s and 'val' in s]
-        vcn1_acc       = [s for s in vcn1_hist.history.keys()  if 'acc'  in s and 'val' not in s]
-        vcn1_val_acc   = [s for s in vcn1_hist.history.keys()  if 'acc'  in s and 'val' in s]
-        mvcn1_acc      = [s for s in mvcn1_hist.history.keys() if 'acc'  in s and 'val' not in s]
-        mvcn1_val_acc  = [s for s in mvcn1_hist.history.keys() if 'acc'  in s and 'val' in s]
-        
+    def plot_history(self, vox_hist, vcnn1_hist, mvcnn_hist):
         ## As loss always exists
         epochs = range(1,self.epochs + 1)
 
         ## Training Loss
-        self.plot_single('Training Loss', epochs, vox_hist, vcn1_hist, mvcn1_hist, \
-                        vox_loss, vcn1_loss, mvcn1_loss)
+        self.plot_single('Training Loss',       epochs, vox_hist, vcnn1_hist, mvcnn_hist)
 
         ## Validation Loss
-        self.plot_single('Validation Loss', epochs, vox_hist, vcn1_hist, mvcn1_hist, \
-                        vox_val_loss, vcn1_val_loss, mvcn1_val_loss)
+        self.plot_single('Validation Loss',     epochs, vox_hist, vcnn1_hist, mvcnn_hist)
         
         ## Training Accuracy
-        self.plot_single('Training Accuracy', epochs, vox_hist, vcn1_hist, mvcn1_hist, \
-                        vox_acc, vcn1_acc, mvcn1_acc)
+        self.plot_single('Training Accuracy',   epochs, vox_hist, vcnn1_hist, mvcnn_hist)
 
         ## Validation Accuracy
-        self.plot_single('Validation Accuracy', epochs, vox_hist, vcn1_hist, mvcn1_hist, \
-                        vox_val_acc, vcn1_val_acc, mvcn1_val_acc)
+        self.plot_single('Validation Accuracy', epochs, vox_hist, vcnn1_hist, mvcnn_hist)
 
     def plot_confusion_matrix(self, cm, classes, normalize=False, cmap=plt.cm.Blues):
         """
@@ -359,7 +346,7 @@ class Deep_Learning:
         vcnn1_history  = self.history
 
         # model = self.V_CNN_2((X_train, y_train), (X_test, y_test), batch_size=self.batch_size, epochs=self.epochs) 
-        model_mvcn1    = self.MV_CNN_1((X_train, y_train), (X_test, y_test), batch_size=self.batch_size, epochs=self.epochs) 
+        model_mvcn1    = self.MV_CNN((X_train, y_train), (X_test, y_test), batch_size=self.batch_size, epochs=self.epochs) 
         mvcnn1_history = self.history
 
         self.plot_history(voxnet_history, vcnn1_history, mvcnn1_history)

@@ -16,15 +16,6 @@ class Display:
         self.visual_ptk = []
         self.objects    = [ 'small_suitcase', 'big_suitcase', 'black_chair', 'blue_chair', 'table' ]
 
-        self.pcl_dataset = "wolf_3D_object_dataset.npz"
-    
-    def load_data(self, path):
-        datasets = np.load(path)
-        data     = datasets['data']
-        labels   = datasets['labels']
-        self.number_class = np.unique(labels).shape[0]
-        return data, labels
-
     def filter_raw_data(self, data_pcl):
         # 1st filter (knee joint)
         data_x   = data_pcl[:,0]
@@ -156,56 +147,35 @@ class Display:
         self.close_all()
 
     def run(self):
-        data, labels = self.load_data(self.pcl_dataset)
 
-        # select random data from array
-        index   = np.random.choice(data.shape[0], 1, replace=False)
+        for i in self.objects :
+            # if i == 'blue_chair':
+            if i == 'small_suitcase':
+                temp_data = '{}/{}.npz'.format(self.data_dir, i)
+                print(temp_data)
 
-        s_data  = np.squeeze(data[index])
-        s_label = labels[index]
-        print('random index: {}'.format(index))
-        print('label: {}'.format(s_label))
+                pcl_file = np.load(temp_data)
+                pcl      = pcl_file['pcl']
+                v = self.plot_point_cloud(i, pcl, big_point=False, color=True, view_dist=5)
+                v.capture('{}/{}.png'.format(self.data_dir, i))
+                self.visual_ptk.append(v)
 
-        # 0 : small_suitcase
-        # 1 : big_suitcase
-        # 2 : black_chair
-        # 3 : blue_chair
+                # filter raw data
+                pcl = self.filter_raw_data(pcl)
+                v   = self.plot_point_cloud(i, pcl, big_point=False, color=True, view_dist=2.5)
+                v.capture('{}/{}-filter.png'.format(self.data_dir, i))
+                self.visual_ptk.append(v)
 
-        # v = self.plot_point_cloud(s_label, s_data, big_point=False, color=True, view_dist=5)
-        
-        fig = plt.figure()
-        ax  = fig.gca(projection='3d')
+                # voxelization
+                voxel = self.voxelization_raw_data(pcl)
+                fig = plt.figure()
+                ax  = fig.gca(projection='3d')
+                self.plot_voxel(ax, voxel)
 
-        # print(s_data.shape)
-        self.plot_voxel(ax, s_data)
-
-        # for i in self.objects :
-        #     if i == 'blue_chair':
-        #         temp_data = '{}/{}.npz'.format(self.data_dir, i)
-        #         print(temp_data)
-
-        #         pcl_file = np.load(temp_data)
-        #         pcl      = pcl_file['pcl']
-        #         v = self.plot_point_cloud(i, pcl, big_point=False, color=True, view_dist=5)
-        #         v.capture('{}/{}.png'.format(self.data_dir, i))
-        #         self.visual_ptk.append(v)
-
-        #         # filter raw data
-        #         pcl = self.filter_raw_data(pcl)
-        #         v   = self.plot_point_cloud(i, pcl, big_point=False, color=True, view_dist=2.5)
-        #         v.capture('{}/{}-filter.png'.format(self.data_dir, i))
-        #         self.visual_ptk.append(v)
-
-        #         # voxelization
-        #         voxel = self.voxelization_raw_data(pcl)
-        #         fig = plt.figure()
-        #         ax  = fig.gca(projection='3d')
-        #         self.plot_voxel(ax, voxel)
-
-        plt.show(block=True)
-        # plt.show(block=False)
-        # input('Enter to close all')
-        # self.close_all()
+        # plt.show(block=True)
+        plt.show()
+        input('Enter to close all')
+        self.close_all()
 
 if __name__ == '__main__':
     display = Display()

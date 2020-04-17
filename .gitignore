@@ -1,3 +1,5 @@
 data/
+result_backup/
 *.npz
 *.pyc
+*.p
